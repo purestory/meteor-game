@@ -64,7 +64,7 @@
 <body>
     <div class="game-container">
         <div>
-            <div id="score">점수: 0</div>
+            <div id="score">점수: 0 (단계: 1)</div>
             <div id="time">시간: 0ms</div>
             <canvas id="gameCanvas" width="400" height="600"></canvas>
         </div>
@@ -247,6 +247,8 @@
                 if (!gameStarted && !isGameOver) {
                     gameStarted = true;
                     startTime = Date.now();
+                    lastDifficultyIncrease = Date.now();
+                    meteorCount = 1;
                     canvas.style.cursor = 'none';
                 }
             }
@@ -340,10 +342,11 @@
             const currentTime = Date.now();
 
             // 10초마다 난이도 증가
-            if (currentTime - lastDifficultyIncrease > DIFFICULTY_INTERVAL) {
+            if (currentTime - lastDifficultyIncrease >= DIFFICULTY_INTERVAL) {
                 meteorCount++;
                 lastDifficultyIncrease = currentTime;
                 console.log(`난이도 증가! 현재 운석 수: ${meteorCount}, 시간: ${getGameTime()}`);
+                scoreElement.textContent = `점수: ${score} (단계: ${meteorCount})`;
             }
 
             // 운석 생성 타이밍 체크
@@ -374,7 +377,7 @@
                     meteor.y > canvas.height + meteor.height) {
                     meteors.splice(index, 1);
                     score++;
-                    scoreElement.textContent = `점수: ${score}`;
+                    scoreElement.textContent = `점수: ${score} (단계: ${meteorCount})`;
                 }
             });
 
@@ -475,7 +478,8 @@
             score = 0;
             meteors = [];
             startTime = Date.now();
-            scoreElement.textContent = '점수: 0';
+            lastDifficultyIncrease = Date.now();
+            scoreElement.textContent = '점수: 0 (단계: 1)';
             player.x = canvas.width / 2 - player.width / 2;
             player.y = canvas.height - 100;
             pauseInfo.style.display = 'none';
@@ -566,15 +570,15 @@
             explosions = [];
             startTime = null;
             lastMeteorTime = 0;
-            meteorCount = 1;      // 운석 생성 수 초기화
-            lastDifficultyIncrease = 0;  // 난이도 타이머 초기화
+            meteorCount = 1;
+            lastDifficultyIncrease = Date.now();
             
             // 플레이어 위치 초기화
             player.x = canvas.width / 2 - player.width / 2;
             player.y = canvas.height - 100;
 
             // 점수와 시간 초기화
-            scoreElement.textContent = '점수: 0';
+            scoreElement.textContent = '점수: 0 (단계: 1)';
             timeElement.textContent = '시간: 0.000s';
         }
 
