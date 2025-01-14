@@ -1,9 +1,9 @@
 let scores = [];  // 실제로는 데이터베이스를 사용해야 합니다
 
 export default async function handler(req, res) {
-    // CORS 헤더 설정
+    // CORS 헤더 설정 수정
     res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', 'https://purestory.github.io');
+    res.setHeader('Access-Control-Allow-Origin', '*');  // 모든 도메인 허용
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
