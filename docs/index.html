@@ -573,7 +573,7 @@
             const currentTime = getGameTime();
             const finalScore = score;
 
-            // 즉시 폭발 효과 생성 (API 호출 전으로 이동)
+            // 즉시 폭발 효과 생성
             const explosion = new Explosion(
                 player.x + player.width/2,
                 player.y + player.height/2
@@ -581,7 +581,6 @@
             explosion.size = 150;
             explosions.push(explosion);
             
-            // 서버에 점수 저장
             try {
                 const scoreData = {
                     score: finalScore,
@@ -601,20 +600,21 @@
                 ]);
 
                 const highScores = await highScoresResponse.json();
-                const isNewHighScore = highScores.scores[0]?.score <= finalScore;
                 
-                // 폭발 애니메이션이 끝나길 기다린 후 결과 표시
+                // 최고 점수 비교 로직 수정
+                const isNewHighScore = !highScores.scores.length || highScores.scores[0]?.score <= finalScore;
+                
                 setTimeout(() => {
                     if (isNewHighScore) {
                         alert(`🎉 새로운 최고 기록!\n최종 점수: ${finalScore}\n생존 시간: ${currentTime}\n\nSPACE를 눌러 재시작`);
                     } else {
-                        const topScore = highScores.scores[0];
+                        const topScore = highScores.scores[0] || { score: 0, time: '0.000' };
                         alert(`게임 오버!\n최종 점수: ${finalScore}\n생존 시간: ${currentTime}\n\n최고 기록: ${topScore.score}점 (${topScore.time})\n\nSPACE를 눌러 재시작`);
                     }
                     gameStarted = false;
                     isGameOver = false;
                     resetGame();
-                }, 300);  // 대기 시간만 감소 (500 → 300)
+                }, 300);
                 
             } catch (error) {
                 console.error('점수 저장 실패:', error);
