@@ -721,7 +721,7 @@
 
         // 버전 정보 업데이트 수정
         const isGitHubPages = window.location.hostname.includes('github.io');
-        const packageJsonPath = isGitHubPages ? '/meteor-game/package.json' : './package.json';  // 상대 경로로 수정
+        const packageJsonPath = isGitHubPages ? `/meteor-game/package.json?v=${Date.now()}` : './package.json';
 
         fetch(packageJsonPath)
             .then(response => response.json())
@@ -731,8 +731,7 @@
             })
             .catch(error => {
                 console.error('버전 정보 로드 실패:', error);
-                // 로컬 환경에서 실패시 대체 경로 시도
-                const fallbackPath = './package.json';
+                const fallbackPath = `./package.json?v=${Date.now()}`;
                 if (packageJsonPath !== fallbackPath) {
                     fetch(fallbackPath)
                         .then(response => response.json())
