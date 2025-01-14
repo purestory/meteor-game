@@ -79,6 +79,40 @@
             color: #666;
             font-size: 12px;
         }
+        /* 모달 스타일 추가 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        
+        .modal-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .modal-button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 <body>
@@ -102,6 +136,12 @@
     </div>
 
     <div id="version">v1.0</div>
+
+    <!-- 모달 추가 -->
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content" id="modalText"></div>
+        <button class="modal-button" onclick="closeModal()">SPACE를 눌러 재시작</button>
+    </div>
 
     <script>
         // DOM 요소 참조 추가
@@ -610,10 +650,10 @@
                 
                 setTimeout(() => {
                     if (isNewHighScore) {
-                        alert(`🎉 새로운 최고 기록!\n최종 점수: ${finalScore}\n생존 시간: ${currentTime}\n\nSPACE를 눌러 재시작`);
+                        showModal(`🎉 새로운 최고 기록!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}`);
                     } else {
                         const topScore = highScores.scores[0] || { score: 0, time: '0.000' };
-                        alert(`게임 오버!\n최종 점수: ${finalScore}\n생존 시간: ${currentTime}\n\n최고 기록: ${topScore.score}점 (${topScore.time})\n\nSPACE를 눌러 재시작`);
+                        showModal(`게임 오버!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}<br><br>최고 기록: ${topScore.score}점 (${topScore.time})`);
                     }
                     gameStarted = false;
                     isGameOver = false;
@@ -622,7 +662,7 @@
                 
             } catch (error) {
                 console.error('점수 저장 실패:', error);
-                alert(`게임 오버!\n최종 점수: ${finalScore}\n생존 시간: ${currentTime}`);
+                showModal(`게임 오버!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}`);
                 gameStarted = false;
                 isGameOver = false;
                 resetGame();
@@ -700,6 +740,24 @@
                         .catch(err => console.error('대체 경로도 실패:', err));
                 }
             });
+
+        // 모달 관련 함수 추가
+        function showModal(text) {
+            const modal = document.getElementById('gameOverModal');
+            document.getElementById('modalText').innerHTML = text;
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('gameOverModal').style.display = 'none';
+        }
+
+        // 스페이스바로 모달 닫기
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && document.getElementById('gameOverModal').style.display === 'block') {
+                closeModal();
+            }
+        });
     </script>
 </body>
 </html> 
