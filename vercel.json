@@ -3,5 +3,6 @@
   "routes": [
     { "src": "/api/scores", "dest": "/api/scores.js" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  ],
+  "alias": ["meteor-game-git-main-purestorys-projects"]
 }
