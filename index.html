@@ -159,10 +159,10 @@
             }
         }
 
-        // 이미지 소스 설정 (절대 경로 사용)
-        playerImage.src = '/images/player.png';
-        meteorImage.src = '/images/meteor.png';
-        explosionImage.src = '/images/explosion.jpg';
+        // 이미지 소스 설정 수정
+        playerImage.src = './images/player.png';     // 상대 경로 사용
+        meteorImage.src = './images/meteor.png';     // 상대 경로 사용
+        explosionImage.src = './images/explosion.jpg'; // 상대 경로 사용
 
         // 게임 루프
         function gameLoop() {
@@ -230,7 +230,7 @@
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            // 플레이어 이동
+            // 플레이어 이동    
             player.x = mouseX - player.width/2;
             player.y = mouseY - player.height/2;
 
