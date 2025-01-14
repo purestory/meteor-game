@@ -1,19 +1,227 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>숫자 맞추기 게임</title>
-    <link rel="stylesheet" href="style.css">
+    <title>운석 피하기</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: black;
+        }
+        .container {
+            text-align: center;
+        }
+        #gameCanvas {
+            border: 2px solid #333;
+            background-color: #000033;
+        }
+        #score, #time {
+            color: white;
+            font-size: 24px;
+            margin: 10px;
+        }
+        #pauseInfo {
+            display: none;
+            color: red;
+            font-size: 30px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>숫자 맞추기 게임</h1>
-        <p>1부터 100 사이의 숫자를 맞춰보세요!</p>
-        <input type="number" id="guessField" class="guessField">
-        <input type="submit" value="도전!" class="guessSubmit" id="submitGuess">
-        <p class="message" id="message"></p>
-        <p class="attempts" id="attempts">시도 횟수: 0</p>
+        <div id="score">점수: 0</div>
+        <div id="time">시간: 0.000초</div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div id="pauseInfo">일시정지</div>
     </div>
-    <script src="script.js"></script>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const timeElement = document.getElementById('time');
+        const pauseInfo = document.getElementById('pauseInfo');
+
+        // 게임 상태
+        let gameStarted = false;
+        let isPaused = false;
+        let isGameOver = false;
+        let meteors = [];
+        let score = 0;
+        let startTime = 0;
+
+        // 플레이어
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height - 50,
+            width: 30,
+            height: 30,
+            color: 'white'
+        };
+
+        // 마우스 이벤트
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isGameOver && !isPaused && gameStarted) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const canvasX = (mouseX / rect.width) * canvas.width;
+                const canvasY = (mouseY / rect.height) * canvas.height;
+                
+                player.x = Math.max(0, Math.min(canvas.width - player.width, canvasX));
+                player.y = Math.max(0, Math.min(canvas.height - player.height, canvasY));
+            }
+        });
+
+        // 스페이스바 이벤트
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (!gameStarted || isGameOver) {
+                    startGame();
+                } else {
+                    isPaused = !isPaused;
+                    pauseInfo.style.display = isPaused ? 'block' : 'none';
+                    if (!isPaused) gameLoop();
+                }
+            }
+        });
+
+        function createMeteor() {
+            const side = Math.floor(Math.random() * 4);
+            let x, y, speedX, speedY;
+            const speed = 3 + Math.random() * 2;
+            
+            switch(side) {
+                case 0: // 위
+                    x = Math.random() * canvas.width;
+                    y = -30;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = speed;
+                    break;
+                case 1: // 오른쪽
+                    x = canvas.width + 30;
+                    y = Math.random() * canvas.height;
+                    speedX = -speed;
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+                case 2: // 아래
+                    x = Math.random() * canvas.width;
+                    y = canvas.height + 30;
+                    speedX = (Math.random() - 0.5) * 4;
+                    speedY = -speed;
+                    break;
+                case 3: // 왼쪽
+                    x = -30;
+                    y = Math.random() * canvas.height;
+                    speedX = speed;
+                    speedY = (Math.random() - 0.5) * 4;
+                    break;
+            }
+
+            return {
+                x, y, speedX, speedY,
+                width: 20,
+                height: 20,
+                color: 'red'
+            };
+        }
+
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function update() {
+            if (!gameStarted || isGameOver || isPaused) return;
+
+            const currentTime = Date.now() - startTime;
+            const seconds = Math.floor(currentTime / 1000);
+            const milliseconds = currentTime % 1000;
+            timeElement.textContent = `시간: ${seconds}.${milliseconds.toString().padStart(3, '0')}초`;
+
+            if (Math.random() < 0.05) {
+                meteors.push(createMeteor());
+            }
+
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                const meteor = meteors[i];
+                meteor.x += meteor.speedX;
+                meteor.y += meteor.speedY;
+
+                if (checkCollision(player, meteor)) {
+                    isGameOver = true;
+                    alert(`게임 오버!\n최종 점수: ${score}\n생존 시간: ${seconds}.${milliseconds.toString().padStart(3, '0')}초`);
+                    return;
+                }
+
+                if (meteor.x < -50 || meteor.x > canvas.width + 50 || 
+                    meteor.y < -50 || meteor.y > canvas.height + 50) {
+                    meteors.splice(i, 1);
+                    score++;
+                    scoreElement.textContent = `점수: ${score}`;
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!gameStarted) {
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('운석 피하기', canvas.width/2, canvas.height/2 - 40);
+                ctx.font = '20px Arial';
+                ctx.fillText('스페이스바를 눌러 시작하세요', canvas.width/2, canvas.height/2);
+                return;
+            }
+
+            // 플레이어 그리기
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // 운석 그리기
+            meteors.forEach(meteor => {
+                ctx.fillStyle = meteor.color;
+                ctx.fillRect(meteor.x, meteor.y, meteor.width, meteor.height);
+            });
+        }
+
+        function startGame() {
+            gameStarted = true;
+            isGameOver = false;
+            isPaused = false;
+            score = 0;
+            meteors = [];
+            startTime = Date.now();
+            scoreElement.textContent = '점수: 0';
+            player.x = canvas.width / 2;
+            player.y = canvas.height - 50;
+            pauseInfo.style.display = 'none';
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!isPaused && gameStarted && !isGameOver) {
+                update();
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // 초기 화면 그리기
+        draw();
+    </script>
 </body>
 </html> 
