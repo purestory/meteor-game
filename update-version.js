@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 try {
-    // package.json 읽기
-    const packagePath = path.join(__dirname, 'package.json');
+    // docs/package.json 읽기
+    const packagePath = path.join(__dirname, 'docs', 'package.json');
     const package = require(packagePath);
 
     console.log('현재 버전:', package.version);
