@@ -1,0 +1,20 @@
+{
+  "name": "meteor-game",
+  "version": "1.0.0",
+  "description": "간단한 HTML5 Canvas 기반의 운석 피하기 게임입니다.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/purestory/meteor-game.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/purestory/meteor-game/issues"
+  },
+  "homepage": "https://github.com/purestory/meteor-game#readme"
+}
