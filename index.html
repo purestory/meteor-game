@@ -101,6 +101,8 @@
         let startTime;
         let meteors = [];
         let explosions = [];
+        let highScore = localStorage.getItem('highScore') || 0;
+        let highScoreTime = localStorage.getItem('highScoreTime') || '0.000';
 
         // 이미지 로드
         const playerImage = new Image();
@@ -394,9 +396,12 @@
                 ctx.fillStyle = 'white';
                 ctx.font = '30px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('운석 피하기', canvas.width/2, canvas.height/2 - 40);
+                ctx.fillText('운석 피하기', canvas.width/2, canvas.height/2 - 60);
+                
+                // 최고 기록 표시
                 ctx.font = '20px Arial';
-                ctx.fillText('스페이스바를 눌러 시작하세요', canvas.width/2, canvas.height/2);
+                ctx.fillText(`최고 기록: ${highScore}점 (${highScoreTime})`, canvas.width/2, canvas.height/2 - 20);
+                ctx.fillText('스페이스바를 눌러 시작하세요', canvas.width/2, canvas.height/2 + 20);
                 return;
             }
 
@@ -540,27 +545,54 @@
         }
 
         // 게임 오버 함수 수정
-        function gameOver() {
+        async function gameOver() {
             isGameOver = true;
-            console.log('게임 오버 - 폭발 생성:', player.x, player.y);
+            const currentTime = getGameTime();
             
-            // 큰 폭발 효과
-            const explosion = new Explosion(
-                player.x + player.width/2,
-                player.y + player.height/2
-            );
-            explosion.size = 150;
-            explosions.push(explosion);
+            // 서버에 점수 저장
+            try {
+                const response = await fetch('https://meteor-game-delta.vercel.app/api/scores', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        score: score,
+                        time: currentTime
+                    })
+                });
+                
+                // 최고 점수 조회
+                const highScoresResponse = await fetch('https://meteor-game-delta.vercel.app/api/scores');
+                const highScores = await highScoresResponse.json();
+                
+                const isNewHighScore = highScores.scores[0]?.score <= score;
+                
+                // 폭발 효과 생성
+                const explosion = new Explosion(
+                    player.x + player.width/2,
+                    player.y + player.height/2
+                );
+                explosion.size = 150;
+                explosions.push(explosion);
+                
+                setTimeout(() => {
+                    if (isNewHighScore) {
+                        alert(`🎉 새로운 최고 기록!\n최종 점수: ${score}\n생존 시간: ${currentTime}\n\nSPACE를 눌러 재시작`);
+                    } else {
+                        const topScore = highScores.scores[0];
+                        alert(`게임 오버!\n최종 점수: ${score}\n생존 시간: ${currentTime}\n\n최고 기록: ${topScore.score}점 (${topScore.time})\n\nSPACE를 눌러 재시작`);
+                    }
+                }, 500);
+                
+            } catch (error) {
+                console.error('점수 저장 실패:', error);
+                alert(`게임 오버!\n최종 점수: ${score}\n생존 시간: ${currentTime}`);
+            }
             
-            // 게임 오버 메시지와 재시작 안내
-            setTimeout(() => {
-                alert(`게임 오버!\n최종 점수: ${score}\n생존 시간: ${getGameTime()}\n\nSPACE를 눌러 재시작`);
-                // 재시작 가능 상태로 설정
-                gameStarted = false;
-                isGameOver = false;
-                // 게임 상태 초기화
-                resetGame();
-            }, 500);
+            gameStarted = false;
+            isGameOver = false;
+            resetGame();
         }
 
         // 게임 초기화 함수 추가
