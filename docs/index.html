@@ -677,22 +677,17 @@
         setInterval(checkApiStatus, 30000);
 
         // 버전 정보 업데이트 수정
-        fetch('package.json')
+        const isGitHubPages = window.location.hostname.includes('github.io');
+        const packageJsonPath = isGitHubPages ? '/meteor-game/package.json' : '/package.json';
+
+        fetch(packageJsonPath)
             .then(response => response.json())
             .then(data => {
                 document.getElementById('version').textContent = `v${data.version}`;
-                console.log('로드된 버전:', data.version);  // 디버깅용
+                console.log('로드된 버전:', data.version, '경로:', packageJsonPath);
             })
             .catch(error => {
                 console.error('버전 정보 로드 실패:', error);
-                // GitHub Pages용 대체 경로 시도
-                fetch('../package.json')
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('version').textContent = `v${data.version}`;
-                        console.log('대체 경로에서 로드된 버전:', data.version);
-                    })
-                    .catch(err => console.error('대체 경로도 실패:', err));
             });
     </script>
 </body>
