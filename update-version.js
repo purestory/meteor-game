@@ -5,8 +5,11 @@ const path = require('path');
 const packagePath = path.join(__dirname, 'package.json');
 const package = require(packagePath);
 
-// 버전 분리
-const [major, minor] = package.version.split('.').map(Number);
+// 버전 분리 (1.0.1 형식도 처리)
+const versionParts = package.version.split('.');
+const major = Number(versionParts[0]);
+const minor = Number(versionParts[1]);
+const patch = Number(versionParts[2] || 0);
 
 // minor 버전을 0.1 증가
 const newMinor = minor + 0.1;
