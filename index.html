@@ -65,7 +65,7 @@
     <div class="game-container">
         <div>
             <div id="score">점수: 0</div>
-            <div id="time">시간: 0초</div>
+            <div id="time">시간: 0ms</div>
             <canvas id="gameCanvas" width="400" height="600"></canvas>
         </div>
         <div class="preview-container">
@@ -222,12 +222,32 @@
             animatePreview();
         }
 
-        // 키보드 이벤트 리스너
+        // 마우스 이동 이벤트 리스너 복구
+        canvas.addEventListener('mousemove', (e) => {
+            if (!gameStarted || isGameOver || isPaused) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // 플레이어 이동
+            player.x = mouseX - player.width/2;
+            player.y = mouseY - player.height/2;
+
+            // 화면 경계 체크
+            if (player.x < 0) player.x = 0;
+            if (player.x > canvas.width - player.width) player.x = canvas.width - player.width;
+            if (player.y < 0) player.y = 0;
+            if (player.y > canvas.height - player.height) player.y = canvas.height - player.height;
+        });
+
+        // 키보드 이벤트 리스너 수정
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 if (!gameStarted && !isGameOver) {
                     gameStarted = true;
                     startTime = Date.now();
+                    canvas.style.cursor = 'none';
                 }
             }
         });
@@ -240,137 +260,126 @@
             height: 40
         };
 
-        // 마우스 이벤트
-        canvas.addEventListener('mousemove', (e) => {
-            if (!isGameOver && !isPaused && gameStarted) {
-                const rect = canvas.getBoundingClientRect();
-                const mouseX = e.clientX - rect.left;
-                const mouseY = e.clientY - rect.top;
-                
-                const canvasX = (mouseX / rect.width) * canvas.width;
-                const canvasY = (mouseY / rect.height) * canvas.height;
-                
-                player.x = Math.max(0, Math.min(canvas.width - player.width, canvasX));
-                player.y = Math.max(0, Math.min(canvas.height - player.height, canvasY));
-            }
-        });
-
         function createMeteor() {
+            const size = 30 + Math.random() * 40; // 30~70 사이의 랜덤 크기
+            const meteor = {
+                x: 0,
+                y: 0,
+                width: size,
+                height: size,
+                speedX: 0,
+                speedY: 0,
+                rotation: Math.random() * Math.PI * 2, // 초기 회전 각도
+                rotationSpeed: (Math.random() - 0.5) * 0.2 // 회전 속도
+            };
+
+            // 운석 시작 위치 (화면 바깥)
             const side = Math.floor(Math.random() * 4);
-            let x, y, speedX, speedY;
-            const speed = 3 + Math.random() * 2;
-            
             switch(side) {
                 case 0: // 위
-                    x = Math.random() * canvas.width;
-                    y = -30;
-                    speedX = (Math.random() - 0.5) * 4;
-                    speedY = speed;
+                    meteor.x = Math.random() * canvas.width;
+                    meteor.y = -meteor.height;
                     break;
                 case 1: // 오른쪽
-                    x = canvas.width + 30;
-                    y = Math.random() * canvas.height;
-                    speedX = -speed;
-                    speedY = (Math.random() - 0.5) * 4;
+                    meteor.x = canvas.width + meteor.width;
+                    meteor.y = Math.random() * canvas.height;
                     break;
                 case 2: // 아래
-                    x = Math.random() * canvas.width;
-                    y = canvas.height + 30;
-                    speedX = (Math.random() - 0.5) * 4;
-                    speedY = -speed;
+                    meteor.x = Math.random() * canvas.width;
+                    meteor.y = canvas.height + meteor.height;
                     break;
                 case 3: // 왼쪽
-                    x = -30;
-                    y = Math.random() * canvas.height;
-                    speedX = speed;
-                    speedY = (Math.random() - 0.5) * 4;
+                    meteor.x = -meteor.width;
+                    meteor.y = Math.random() * canvas.height;
                     break;
             }
 
-            return {
-                x, y, speedX, speedY,
-                width: 30,
-                height: 30,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.2
-            };
+            // 플레이어 방향으로의 속도 계산
+            const angle = Math.atan2(
+                player.y + player.height/2 - meteor.y,
+                player.x + player.width/2 - meteor.x
+            );
+            const speed = 2 + Math.random() * 2; // 2~4 사이의 랜덤 속도
+            meteor.speedX = Math.cos(angle) * speed;
+            meteor.speedY = Math.sin(angle) * speed;
+
+            meteors.push(meteor);
         }
 
-        function checkCollision(rect1, rect2) {
-            const margin = 10;
+        function checkCollision(player, meteor) {
+            // 중심점 간의 거리 계산
+            const dx = (player.x + player.width/2) - (meteor.x + meteor.width/2);
+            const dy = (player.y + player.height/2) - (meteor.y + meteor.height/2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
-            const player = {
-                x: rect1.x + margin,
-                y: rect1.y + margin,
-                width: rect1.width - (margin * 2),
-                height: rect1.height - (margin * 2)
-            };
+            // 충돌 반경 (두 객체의 크기를 고려)
+            const collisionRadius = (player.width + meteor.width) / 4;
             
-            const meteor = {
-                x: rect2.x + margin,
-                y: rect2.y + margin,
-                width: rect2.width - (margin * 2),
-                height: rect2.height - (margin * 2)
-            };
-
-            if (player.x < meteor.x + meteor.width &&
-                player.x + player.width > meteor.x &&
-                player.y < meteor.y + meteor.height &&
-                player.y + player.height > meteor.y) {
-                
-                // 충돌 시 폭발 효과 추가
-                explosions.push(new Explosion(
-                    player.x + player.width/2,
-                    player.y + player.height/2
-                ));
-                return true;
-            }
-            return false;
+            return distance < collisionRadius;
         }
 
         // 시간 표시 함수
         function getGameTime() {
-            if (!startTime) return '0초';
-            const seconds = Math.floor((Date.now() - startTime) / 1000);
-            return `${seconds}초`;
+            if (!startTime) return '0.000s';
+            const ms = Date.now() - startTime;
+            const seconds = (ms / 1000).toFixed(3); // 밀리초를 초로 변환하고 소수점 3자리까지 표시
+            return `${seconds}s`;
         }
 
+        // 운석 생성 관련 변수 추가
+        let lastMeteorTime = 0;
+        let meteorInterval = 1000; // 기본 1초마다 운석 생성
+        let meteorCount = 1;      // 한 번에 생성할 운석 수
+        let lastDifficultyIncrease = 0;
+        const DIFFICULTY_INTERVAL = 10000; // 10초마다 난이도 증가
+
+        // update 함수 수정
         function update() {
             if (!gameStarted || isGameOver || isPaused) return;
 
-            // 시간 업데이트
-            timeElement.textContent = `시간: ${getGameTime()}`;
-            
-            // 점수 업데이트
-            scoreElement.textContent = `점수: ${score}`;
+            const currentTime = Date.now();
 
-            const currentTime = Date.now() - startTime;
-            const seconds = Math.floor(currentTime / 1000);
-            const milliseconds = currentTime % 1000;
-            timeElement.textContent = `시간: ${seconds}.${milliseconds.toString().padStart(3, '0')}초`;
-
-            if (Math.random() < 0.05) {
-                meteors.push(createMeteor());
+            // 10초마다 난이도 증가
+            if (currentTime - lastDifficultyIncrease > DIFFICULTY_INTERVAL) {
+                meteorCount++;
+                lastDifficultyIncrease = currentTime;
+                console.log(`난이도 증가! 현재 운석 수: ${meteorCount}, 시간: ${getGameTime()}`);
             }
 
+            // 운석 생성 타이밍 체크
+            if (currentTime - lastMeteorTime > meteorInterval) {
+                // 한 번에 여러 개의 운석 생성
+                for (let i = 0; i < meteorCount; i++) {
+                    createMeteor();
+                }
+                lastMeteorTime = currentTime;
+            }
+
+            // 운석 업데이트
             meteors.forEach((meteor, index) => {
                 meteor.x += meteor.speedX;
                 meteor.y += meteor.speedY;
+                meteor.rotation += meteor.rotationSpeed;
 
+                // 충돌 체크
                 if (checkCollision(player, meteor)) {
                     gameOver();
                     return;
                 }
 
-                // 화면 밖으로 나간 운석 제거 시 작은 폭발 효과 추가
-                if (meteor.x < -50 || meteor.x > canvas.width + 50 || 
-                    meteor.y < -50 || meteor.y > canvas.height + 50) {
-                    explosions.push(new Explosion(meteor.x, meteor.y));
+                // 화면 밖으로 나간 운석 제거
+                if (meteor.x < -meteor.width || 
+                    meteor.x > canvas.width + meteor.width ||
+                    meteor.y < -meteor.height || 
+                    meteor.y > canvas.height + meteor.height) {
                     meteors.splice(index, 1);
                     score++;
                     scoreElement.textContent = `점수: ${score}`;
                 }
             });
+
+            // 시간 업데이트
+            timeElement.textContent = `시간: ${getGameTime()}`;
         }
 
         const DEBUG_MODE = false;
@@ -394,11 +403,39 @@
             }
 
             // 운석 그리기
-            if (imagesLoaded.meteor) {
-                meteors.forEach(meteor => {
-                    ctx.drawImage(meteorImage, meteor.x, meteor.y, meteor.width, meteor.height);
-                });
-            }
+            meteors.forEach(meteor => {
+                ctx.save();
+                // 운석의 중심으로 이동
+                ctx.translate(
+                    meteor.x + meteor.width/2,
+                    meteor.y + meteor.height/2
+                );
+                // 회전
+                ctx.rotate(meteor.rotation);
+                
+                // 운석 그리기
+                if (meteorImage.complete && meteorImage.naturalHeight !== 0) {
+                    ctx.drawImage(
+                        meteorImage,
+                        -meteor.width/2,
+                        -meteor.height/2,
+                        meteor.width,
+                        meteor.height
+                    );
+                } else {
+                    // 이미지가 없을 경우 대체 그래픽
+                    ctx.fillStyle = '#F40';
+                    ctx.beginPath();
+                    ctx.moveTo(-meteor.width/2, 0);
+                    ctx.lineTo(0, -meteor.height/2);
+                    ctx.lineTo(meteor.width/2, 0);
+                    ctx.lineTo(0, meteor.height/2);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            });
 
             if (DEBUG_MODE) {
                 const margin = 10;
@@ -528,6 +565,9 @@
             meteors = [];
             explosions = [];
             startTime = null;
+            lastMeteorTime = 0;
+            meteorCount = 1;      // 운석 생성 수 초기화
+            lastDifficultyIncrease = 0;  // 난이도 타이머 초기화
             
             // 플레이어 위치 초기화
             player.x = canvas.width / 2 - player.width / 2;
@@ -535,7 +575,7 @@
 
             // 점수와 시간 초기화
             scoreElement.textContent = '점수: 0';
-            timeElement.textContent = '시간: 0초';
+            timeElement.textContent = '시간: 0.000s';
         }
 
         // 게임 캔버스 크기 조정
