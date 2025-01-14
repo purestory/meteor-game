@@ -389,6 +389,9 @@
 
         const DEBUG_MODE = false;
 
+        // 상단에 버전 상수 추가
+        const GAME_VERSION = 'v1.0';
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -398,9 +401,14 @@
                 ctx.textAlign = 'center';
                 ctx.fillText('운석 피하기', canvas.width/2, canvas.height/2 - 60);
                 
-                // 최고 기록 표시
+                // 버전 정보 표시 (오른쪽 하단)
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText(GAME_VERSION, canvas.width - 10, canvas.height - 10);
+                
+                // 기존 텍스트들
+                ctx.textAlign = 'center';
                 ctx.font = '20px Arial';
-                ctx.fillText(`최고 기록: ${highScore}점 (${highScoreTime})`, canvas.width/2, canvas.height/2 - 20);
                 ctx.fillText('스페이스바를 눌러 시작하세요', canvas.width/2, canvas.height/2 + 20);
                 return;
             }
