@@ -1,7 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-    <title>운석 피하기</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>운석 피하기 게임</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -13,6 +16,7 @@
             min-height: 100vh;
             margin: 0;
             background-color: black;
+            cursor: default;
         }
         .container {
             text-align: center;
@@ -41,6 +45,8 @@
             gap: 20px;
             padding: 20px;
             background-color: #1a1a1a;
+            position: relative;
+            cursor: default;
         }
         .preview-container {
             display: flex;
@@ -155,6 +161,7 @@
         // 캔버스 설정
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        canvas.style.cursor = 'default';  // 캔버스 초기 상태에서 커서 보이기
         const previewCanvas = document.getElementById('previewCanvas');
         const previewCtx = previewCanvas.getContext('2d');
         const animationCanvas = document.getElementById('animationCanvas');
@@ -310,7 +317,7 @@
             if (player.y > canvas.height - player.height) player.y = canvas.height - player.height;
         });
 
-        // 키보드 이벤트 리스너 수정
+        // 키보드 이벤트 리스너
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
                 if (!gameStarted && !isGameOver) {
@@ -318,7 +325,18 @@
                     startTime = Date.now();
                     lastDifficultyIncrease = Date.now();
                     meteorCount = 1;
-                    canvas.style.cursor = 'none';
+                    canvas.style.cursor = 'none';  // 캔버스에서 커서 숨기기
+                    document.body.style.cursor = 'none';  // 전체 화면에서 커서 숨기기
+                    animate();
+                } else if (gameStarted && !isGameOver) {
+                    // 일시정지 로직
+                    isPaused = !isPaused;
+                    if (!isPaused) {
+                        lastPauseTime = Date.now() - lastPauseTime;
+                        animate();
+                    } else {
+                        lastPauseTime = Date.now();
+                    }
                 }
             }
         });
@@ -458,6 +476,40 @@
 
         // 상단에 버전 상수 추가
         const GAME_VERSION = 'v1.0';
+
+        // 플레이어의 이전 위치 저장용 변수 추가
+        let prevPlayerX = 0;
+        let prevPlayerY = 0;
+
+        function drawPlayer() {
+            // 이전 위치의 플레이어 지우기
+            ctx.clearRect(prevPlayerX - 1, prevPlayerY - 1, 
+                         player.width + 2, player.height + 2);
+            
+            // 현재 위치에 플레이어 그리기
+            ctx.fillStyle = 'white';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // 현재 위치를 이전 위치로 저장
+            prevPlayerX = player.x;
+            prevPlayerY = player.y;
+        }
+
+        function animate() {
+            // 운석 업데이트 및 그리기
+            meteors.forEach((meteor, index) => {
+                // 운석의 이전 위치 지우기
+                ctx.clearRect(meteor.x - 1, meteor.y - 1, 
+                             meteor.width + 2, meteor.height + 2);
+                
+                meteor.update();
+                meteor.draw();
+                
+                // ... 나머지 코드 ...
+            });
+
+            // ... 나머지 코드 ...
+        }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -653,7 +705,7 @@
                 
                 setTimeout(() => {
                     if (isNewHighScore) {
-                        showModal(`🎉 새로운 최고 기록!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}`);
+                        showModal(`새로운 최고 기록!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}`);
                     } else {
                         const topScore = highScores.scores[0] || { score: 0, time: '0.000' };
                         showModal(`게임 오버!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}<br><br>최고 기록: ${topScore.score}점 (${topScore.time})`);
@@ -689,6 +741,9 @@
             // 점수와 시간 초기화
             scoreElement.textContent = '점수: 0 (단계: 1)';
             timeElement.textContent = '시간: 0.000s';
+            
+            canvas.style.cursor = 'default';  // 캔버스에서 커서 보이기
+            document.body.style.cursor = 'default';  // 전체 화면에서 커서 보이기
         }
 
         // 게임 캔버스 크기 조정
