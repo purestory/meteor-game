@@ -97,11 +97,11 @@
             transform: translate(-50%, -50%);
             background-color: rgba(0, 0, 0, 0.9);
             padding: 20px;
-            border: 2px solid #333;
             border-radius: 10px;
-            color: white;
             text-align: center;
+            color: white;
             z-index: 1000;
+            min-width: 300px;
         }
         
         .modal-content {
@@ -149,7 +149,13 @@
     <!-- 모달 추가 -->
     <div id="gameOverModal" class="modal">
         <div class="modal-content" id="modalText"></div>
-        <button class="modal-button" onclick="closeModal()">SPACE를 눌러 재시작</button>
+        <button class="modal-button" onclick="handleRestart()">SPACE를 눌러 재시작</button>
+    </div>
+
+    <!-- 시작 모달 추가 -->
+    <div id="startModal" class="modal">
+        <div class="modal-content">운석 피하기 게임</div>
+        <button class="modal-button" onclick="startGame()">SPACE를 눌러 시작</button>
     </div>
 
     <script>
@@ -320,16 +326,12 @@
         // 키보드 이벤트 리스너
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
-                if (!gameStarted && !isGameOver) {
-                    gameStarted = true;
-                    startTime = Date.now();
-                    lastDifficultyIncrease = Date.now();
-                    meteorCount = 1;
-                    canvas.style.cursor = 'none';  // 캔버스에서 커서 숨기기
-                    document.body.style.cursor = 'none';  // 전체 화면에서 커서 숨기기
-                    animate();
+                if (document.getElementById('gameOverModal').style.display === 'block') {
+                    handleRestart();  // 게임오버 후 재시작
+                } else if (!gameStarted && !isGameOver) {
+                    startGame();  // 게임 시작
                 } else if (gameStarted && !isGameOver) {
-                    // 일시정지 로직
+                    // 게임 중 일시정지
                     isPaused = !isPaused;
                     if (!isPaused) {
                         lastPauseTime = Date.now() - lastPauseTime;
@@ -598,19 +600,16 @@
             }
         }
 
+        // 게임 시작 함수 수정
         function startGame() {
+            document.getElementById('startModal').style.display = 'none';
             gameStarted = true;
-            isGameOver = false;
-            isPaused = false;
-            score = 0;
-            meteors = [];
             startTime = Date.now();
             lastDifficultyIncrease = Date.now();
-            scoreElement.textContent = '점수: 0 (단계: 1)';
-            player.x = canvas.width / 2 - player.width / 2;
-            player.y = canvas.height - 100;
-            pauseInfo.style.display = 'none';
-            gameLoop();
+            meteorCount = 1;
+            canvas.style.cursor = 'none';
+            document.body.style.cursor = 'none';
+            animate();
         }
 
         // 초기 화면 그리기
@@ -669,6 +668,7 @@
         // 게임 오버 함수 수정
         async function gameOver() {
             isGameOver = true;
+            document.body.style.cursor = 'default';
             const currentTime = getGameTime();
             const finalScore = score;
 
@@ -681,27 +681,19 @@
             explosions.push(explosion);
             
             try {
-                const scoreData = {
-                    score: finalScore,
-                    time: currentTime
-                };
+                const response = await fetch('https://port-0-meteorgame-server-12fhqa2blnlum4de.sel5.cloudtype.app/scores', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ score: finalScore, time: currentTime })
+                });
                 
-                // API 호출을 병렬로 처리
-                const [response, highScoresResponse] = await Promise.all([
-                    fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/api/scores', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(scoreData)
-                    }),
-                    fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/api/scores')
-                ]);
-
-                const highScores = await highScoresResponse.json();
+                if (!response.ok) throw new Error('API 요청 실패');
                 
-                // 최고 점수 비교 로직 수정
-                const isNewHighScore = !highScores.scores.length || highScores.scores[0]?.score <= finalScore;
+                const result = await response.json();
+                const isNewHighScore = result.isNewHighScore;
+                highScores = await getHighScores();
                 
                 setTimeout(() => {
                     if (isNewHighScore) {
@@ -710,17 +702,17 @@
                         const topScore = highScores.scores[0] || { score: 0, time: '0.000' };
                         showModal(`게임 오버!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}<br><br>최고 기록: ${topScore.score}점 (${topScore.time})`);
                     }
+                    resetGame();  // 여기서 게임 리셋
                     gameStarted = false;
                     isGameOver = false;
-                    resetGame();
                 }, 300);
                 
             } catch (error) {
                 console.error('점수 저장 실패:', error);
                 showModal(`게임 오버!<br>최종 점수: ${finalScore}<br>생존 시간: ${currentTime}`);
+                resetGame();  // 여기서도 게임 리셋
                 gameStarted = false;
                 isGameOver = false;
-                resetGame();
             }
         }
 
@@ -798,10 +790,38 @@
                 }
             });
 
-        // 모달 관련 함수 추가
+        // 재시작 처리 함수 추가
+        function handleRestart() {
+            closeModal();
+            resetGame();
+            gameStarted = true;
+            isGameOver = false;
+            meteors = [];
+            explosions = [];
+            score = 0;
+            startTime = Date.now();
+            lastMeteorTime = 0;
+            meteorCount = 1;
+            lastDifficultyIncrease = Date.now();
+            
+            // 플레이어 위치 초기화
+            player.x = canvas.width / 2 - player.width / 2;
+            player.y = canvas.height - 100;
+
+            // 점수와 시간 표시 초기화
+            scoreElement.textContent = '점수: 0 (단계: 1)';
+            timeElement.textContent = '시간: 0.000s';
+            
+            canvas.style.cursor = 'none';  // 캔버스 커서 숨기기
+            document.body.style.cursor = 'none';  // 전체 화면 커서 숨기기
+            animate();  // 게임 애니메이션 시작
+        }
+
+        // 모달 관련 함수
         function showModal(text) {
             const modal = document.getElementById('gameOverModal');
             document.getElementById('modalText').innerHTML = text;
+            positionModal(modal);
             modal.style.display = 'block';
         }
 
@@ -809,10 +829,41 @@
             document.getElementById('gameOverModal').style.display = 'none';
         }
 
-        // 스페이스바로 모달 닫기
+        // 스페이스바로 모달 닫기 및 재시작
         document.addEventListener('keydown', function(event) {
             if (event.code === 'Space' && document.getElementById('gameOverModal').style.display === 'block') {
-                closeModal();
+                handleRestart();  // closeModal() 대신 handleRestart() 사용
+            }
+        });
+
+        // 모달 위치 조정 함수 수정 (공통 함수)
+        function positionModal(modalElement) {
+            const canvas = document.getElementById('gameCanvas');
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            modalElement.style.position = 'absolute';
+            modalElement.style.top = canvasRect.top + (canvas.height / 2) + 'px';
+            modalElement.style.left = canvasRect.left + (canvas.width / 2) + 'px';
+            modalElement.style.transform = 'translate(-50%, -50%)';
+        }
+
+        // 페이지 로드 시 시작 모달 표시
+        window.addEventListener('load', function() {
+            const startModal = document.getElementById('startModal');
+            positionModal(startModal);
+            startModal.style.display = 'block';  // 위치 설정 후 표시
+        });
+
+        // 창 크기 변경 시 모달 위치 재조정
+        window.addEventListener('resize', function() {
+            const startModal = document.getElementById('startModal');
+            const gameOverModal = document.getElementById('gameOverModal');
+            
+            if (startModal.style.display === 'block') {
+                positionModal(startModal);
+            }
+            if (gameOverModal.style.display === 'block') {
+                positionModal(gameOverModal);
             }
         });
     </script>
