@@ -21,13 +21,27 @@ export default async function handler(req, res) {
         });
 
         try {
+            console.log('DB 연결 시도...');
             await client.connect();
-            const result = await client.query('SELECT NOW()');
-            await client.end();
+            console.log('DB 연결 성공');
             
-            res.status(200).json({ status: 'connected' });
+            const result = await client.query('SELECT NOW()');
+            console.log('쿼리 실행 결과:', result.rows[0]);
+            
+            await client.end();
+            console.log('DB 연결 종료');
+            
+            res.status(200).json({ 
+                status: 'connected',
+                time: result.rows[0].now
+            });
         } catch (error) {
-            res.status(500).json({ status: 'error', message: error.message });
+            console.error('DB 연결 오류:', error);
+            res.status(500).json({ 
+                status: 'error', 
+                message: error.message,
+                stack: error.stack
+            });
         }
     }
 } 
