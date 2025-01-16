@@ -972,19 +972,14 @@
         // 게임 오버시 점수 저장 함수 수정
         async function saveScore(score, time) {
             try {
-                const response = await fetch('/api/scores', {
+                await fetch('/api/scores', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({ score, time })
                 });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                await updateLeaderboard();  // 순위표 갱신
+                updateLeaderboard();  // 순위표 갱신
             } catch (error) {
                 console.error('점수 저장 실패:', error);
             }
