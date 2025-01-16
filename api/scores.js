@@ -3,8 +3,8 @@ const { Client } = require('pg');
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS,PUT,DELETE');
-    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
     if (req.method === 'OPTIONS') {
         res.status(200).end();
@@ -27,24 +27,20 @@ export default async function handler(req, res) {
 
         if (req.method === 'POST') {
             try {
-                console.log('받은 요청 헤더:', req.headers);
-                console.log('받은 요청 바디:', req.body);
+                const { score, time, difficulty_level, meteor_count } = req.body;
                 
-                const { score, time } = req.body;
-                const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-                
-                if (!score || !time) {
-                    console.error('필수 데이터 누락:', { score, time });
-                    throw new Error('점수와 시간은 필수값입니다.');
+                if (score === undefined || time === undefined) {
+                    throw new Error('점수와 시간이 제대로 전달되지 않았습니다.');
                 }
 
-                const scoreNum = parseInt(score);
-                const timeNum = parseFloat(time);
+                const scoreNum = Number(score);
+                const timeNum = Number(time);
 
                 if (isNaN(scoreNum) || isNaN(timeNum)) {
-                    console.error('잘못된 데이터 형식:', { score, time });
-                    throw new Error('잘못된 데이터 형식입니다.');
+                    throw new Error('잘못된 점수 또는 시간 형식입니다.');
                 }
+
+                const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
 
                 const query = `
                     INSERT INTO game_records (
@@ -57,26 +53,28 @@ export default async function handler(req, res) {
                     ) VALUES ($1, $2, $3, $4, $5, $6)
                 `;
 
-                const values = ['익명', scoreNum, timeNum, 1, Math.floor(scoreNum/10), ip];
-                console.log('실행할 쿼리:', { query, values });
+                const values = [
+                    '익명', 
+                    scoreNum, 
+                    timeNum, 
+                    difficulty_level || 1, 
+                    meteor_count || Math.floor(scoreNum/10), 
+                    ip
+                ];
 
+                console.log('실행할 쿼리:', { query, values });
                 const result = await client.query(query, values);
-                console.log('쿼리 실행 결과:', result);
 
                 res.status(200).json({ 
-                    message: "Score saved successfully",
+                    message: "점수가 성공적으로 저장되었습니다.",
                     data: {
                         score: scoreNum,
-                        time: timeNum,
-                        ip: ip
+                        time: timeNum
                     }
                 });
             } catch (error) {
                 console.error('저장 중 에러:', error);
-                res.status(500).json({ 
-                    error: error.message,
-                    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
-                });
+                res.status(400).json({ error: error.message });
             }
         } 
         else if (req.method === 'GET') {
