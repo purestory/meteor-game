@@ -48,18 +48,7 @@
             position: relative;
             cursor: default;
         }
-        .preview-container {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            margin-left: 20px;
-        }
-        .preview-box {
-            width: auto;
-            padding: 10px;
-            background-color: #333;
-            border-radius: 5px;
-        }
+ 
         .preview-title {
             color: white;
             margin-bottom: 10px;
@@ -162,32 +151,104 @@
             padding: 5px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
+
+        .status-bar {
+            width: 100px;
+            padding: 5px 10px;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+
+        .status-label {
+            font-size: 0.9em;
+            margin-bottom: 3px;
+        }
+
+        .status-ok {
+            background-color: #4caf50;
+            color: white;
+        }
+
+        .status-error {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .score-item {
+            display: flex;
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+
+        .rank {
+            font-size: 1.2em;
+            font-weight: bold;
+            min-width: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-details {
+            flex-grow: 1;
+        }
+
+        .main-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+
+        .player-name {
+            font-weight: bold;
+        }
+
+        .score {
+            color: #ffd700;
+        }
+
+        .sub-info {
+            display: flex;
+            gap: 10px;
+            font-size: 0.9em;
+            color: #ccc;
+        }
+
+        .time-info {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 3px;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            text-align: center;
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
         <div>
             <div class="status-container">
-                <div id="apiStatus">API 상태: 확인 중...</div>
-                <div id="dbStatus">DB 상태: 확인 중...</div>
                 <div id="score">점수: 0 (단계: 1)</div>
                 <div id="time">시간: 0.000s</div>
             </div>
             <canvas id="gameCanvas" width="400" height="600"></canvas>
         </div>
-        <div class="preview-container">
-            <div class="preview-box">
-                <div class="preview-title">폭발 이미지</div>
-                <canvas id="previewCanvas" width="400" height="200"></canvas>
-            </div>
-            <div class="preview-box">
-                <div class="preview-title">폭발 애니메이션 미리보기</div>
-                <canvas id="animationCanvas" width="200" height="200"></canvas>
-            </div>
-        </div>
         <div class="leaderboard">
             <h2>순위표</h2>
             <div id="scoreList"></div>
+            <div class="status-info" style="margin-top: 20px;">
+                <div class="status-label">API 상태</div>
+                <div id="apiStatus" class="status-bar status-ok">연결됨</div>
+                <div class="status-label">DB 상태</div>
+                <div id="dbStatus" class="status-bar status-ok">연결됨</div>
+            </div>
         </div>
     </div>
 
@@ -215,10 +276,6 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         canvas.style.cursor = 'default';  // 캔버스 초기 상태에서 커서 보이기
-        const previewCanvas = document.getElementById('previewCanvas');
-        const previewCtx = previewCanvas.getContext('2d');
-        const animationCanvas = document.getElementById('animationCanvas');
-        const animationCtx = animationCanvas.getContext('2d');
 
         // 게임 상태 변수들
         let gameStarted = false;
@@ -301,55 +358,6 @@
         }
 
         // 폭발 애니메이션 프리뷰
-        function startExplosionPreview() {
-            let frame = 0;
-            const frameWidth = explosionImage.width / 4;    // 원본 프레임 너비
-            const frameHeight = explosionImage.height / 2;  // 원본 프레임 높이
-            const totalFrames = 8;
-            const framesPerRow = 4;
-
-            // 스케일 계산
-            const scale = 0.1;  // 원본 크기의 10%로 축소
-            const scaledWidth = frameWidth * scale;
-            const scaledHeight = frameHeight * scale;
-
-            // 전체 스프라이트 시트 표시
-            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-            previewCtx.drawImage(
-                explosionImage, 
-                0, 
-                0, 
-                explosionImage.width,
-                explosionImage.height,
-                0,
-                0,
-                previewCanvas.width,
-                previewCanvas.height
-            );
-
-            function animatePreview() {
-                const row = Math.floor(frame / framesPerRow);
-                const col = frame % framesPerRow;
-
-                animationCtx.clearRect(0, 0, animationCanvas.width, animationCanvas.height);
-                animationCtx.drawImage(
-                    explosionImage,
-                    col * frameWidth,
-                    row * frameHeight,
-                    frameWidth,
-                    frameHeight,
-                    0,
-                    0,
-                    animationCanvas.width,
-                    animationCanvas.height
-                );
-
-                frame = (frame + 1) % totalFrames;
-                setTimeout(() => requestAnimationFrame(animatePreview), 100);
-            }
-
-            animatePreview();
-        }
 
         // 마우스 이동 이벤트 리스너 복구
         canvas.addEventListener('mousemove', (e) => {
@@ -728,10 +736,11 @@
             explosions.push(explosion);
             
             try {
-                const response = await fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/scores', {
+                const response = await fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/api/scores', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ score: finalScore, time: currentTime })
                 });
@@ -789,62 +798,67 @@
         canvas.width = 400;
         canvas.height = 600;
 
-        // API 상태 확인 함수
+        // API 상태 확인 함수 수정
         async function checkAPIStatus() {
             try {
                 const response = await fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/api/scores');
+                const apiStatus = document.getElementById('apiStatus');
+                
                 if (response.ok) {
-                    document.getElementById('apiStatus').textContent = 'API 상태: 연결됨';
-                    document.getElementById('apiStatus').style.color = '#4CAF50';
+                    apiStatus.className = 'status-bar status-ok';
+                    apiStatus.textContent = '연결됨';
                 } else {
-                    document.getElementById('apiStatus').textContent = 'API 상태: 오류';
-                    document.getElementById('apiStatus').style.color = 'red';
+                    apiStatus.className = 'status-bar status-error';
+                    apiStatus.textContent = '오류';
                 }
             } catch (error) {
-                document.getElementById('apiStatus').textContent = 'API 상태: 연결 안됨';
-                document.getElementById('apiStatus').style.color = 'red';
+                const apiStatus = document.getElementById('apiStatus');
+                apiStatus.className = 'status-bar status-error';
+                apiStatus.textContent = '연결 안됨';
+                console.error('API 상태 확인 실패:', error);
             }
         }
 
-        // DB 상태 확인 함수
+        // DB 상태 확인 함수 수정
         async function checkDBStatus() {
             try {
-                console.log('DB 상태 확인 시도...');
-                const response = await fetch('https://meteor-game-zeta.vercel.app/api/db-status');  // URL 수정
+                const response = await fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/api/db-status');
+                const dbStatus = document.getElementById('dbStatus');
                 
-                console.log('응답 상태:', response.status);
-                
-                if (response.status === 404) {
-                    document.getElementById('dbStatus').textContent = 'DB 상태: API를 찾을 수 없음';
-                    document.getElementById('dbStatus').style.color = 'red';
-                    return;
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'connected') {
+                        dbStatus.className = 'status-bar status-ok';
+                        dbStatus.textContent = '연결됨';
+                    } else {
+                        dbStatus.className = 'status-bar status-error';
+                        dbStatus.textContent = '오류';
+                    }
+                } else {
+                    dbStatus.className = 'status-bar status-error';
+                    dbStatus.textContent = '오류';
                 }
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                console.log('응답 데이터:', data);
-                
-                document.getElementById('dbStatus').textContent = 'DB 상태: ' + 
-                    (data.status === 'connected' ? '연결됨' : '오류');
-                document.getElementById('dbStatus').style.color = 
-                    data.status === 'connected' ? '#4CAF50' : 'red';
-                
             } catch (error) {
-                console.error('DB 상태 확인 오류:', error);
-                document.getElementById('dbStatus').textContent = 'DB 상태: 연결 안됨';
-                document.getElementById('dbStatus').style.color = 'red';
+                const dbStatus = document.getElementById('dbStatus');
+                dbStatus.className = 'status-bar status-error';
+                dbStatus.textContent = '연결 안됨';
+                console.error('DB 상태 확인 실패:', error);
             }
         }
 
-        // 페이지 로드시 상태 확인
-        window.addEventListener('load', () => {
+        // 초기 상태를 '확인 중...'으로 설정
+        document.addEventListener('DOMContentLoaded', () => {
+            const apiStatus = document.getElementById('apiStatus');
+            const dbStatus = document.getElementById('dbStatus');
+            
+            apiStatus.textContent = '확인 중...';
+            dbStatus.textContent = '확인 중...';
+            
+            // 상태 확인 시작
             checkAPIStatus();
             checkDBStatus();
             
-            // 주기적으로 상태 확인 (30초마다)
+            // 30초마다 상태 재확인
             setInterval(() => {
                 checkAPIStatus();
                 checkDBStatus();
@@ -955,30 +969,56 @@
         // 순위표 업데이트 함수
         async function updateLeaderboard() {
             try {
-                const response = await fetch('/api/scores');
-                const data = await response.json();
+                const response = await fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/api/scores');
+                if (!response.ok) throw new Error('API 응답 오류');
                 
+                const data = await response.json();
                 const scoreList = document.getElementById('scoreList');
-                scoreList.innerHTML = data.scores.map((score, index) => `
+                
+                scoreList.innerHTML = data.scores.map((record, index) => `
                     <div class="score-item">
-                        ${index + 1}. ${score.score}점 (${score.survival_time}초)
+                        <div class="rank">${index + 1}</div>
+                        <div class="score-details">
+                            <div class="main-info">
+                                <span class="player-name">${record.player_name || '익명'}</span>
+                                <span class="score">${record.score}점</span>
+                            </div>
+                            <div class="sub-info">
+                                <span class="survival-time">생존: ${record.survival_time}초</span>
+                                <span class="level">난이도: ${record.difficulty_level}</span>
+                                <span class="meteor-count">운석: ${record.meteor_count}개</span>
+                            </div>
+                            <div class="time-info">
+                                ${new Date(record.played_at).toLocaleString()}
+                            </div>
+                        </div>
                     </div>
                 `).join('');
+
             } catch (error) {
                 console.error('순위표 업데이트 실패:', error);
+                document.getElementById('scoreList').innerHTML = '<div class="error-message">순위 데이터를 불러오는데 실패했습니다.</div>';
             }
         }
 
         // 게임 오버시 점수 저장 함수 수정
         async function saveScore(score, time) {
             try {
-                await fetch('/api/scores', {
+                const response = await fetch('https://meteor-game-git-main-purestorys-projects.vercel.app/api/scores', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({ score, time })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('점수 저장 성공:', data);
                 updateLeaderboard();  // 순위표 갱신
             } catch (error) {
                 console.error('점수 저장 실패:', error);

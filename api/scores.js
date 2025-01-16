@@ -25,7 +25,13 @@ export default async function handler(req, res) {
         if (req.method === 'GET') {
             // 상위 10개 기록 조회
             const result = await client.query(`
-                SELECT score, survival_time, played_at 
+                SELECT 
+                    player_name,
+                    score, 
+                    survival_time, 
+                    difficulty_level,
+                    meteor_count,
+                    played_at
                 FROM game_records 
                 ORDER BY score DESC 
                 LIMIT 10
