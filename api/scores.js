@@ -25,45 +25,58 @@ export default async function handler(req, res) {
         console.log('DB 연결 성공');
 
         if (req.method === 'POST') {
-            console.log('받은 요청 데이터:', req.body);
-            
-            const { score, time } = req.body;
-            const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-            
-            if (!score || !time) {
-                throw new Error(`필수 데이터 누락 - score: ${score}, time: ${time}`);
+            try {
+                console.log('받은 요청 헤더:', req.headers);
+                console.log('받은 요청 바디:', req.body);
+                
+                const { score, time } = req.body;
+                const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+                
+                if (!score || !time) {
+                    console.error('필수 데이터 누락:', { score, time });
+                    throw new Error('점수와 시간은 필수값입니다.');
+                }
+
+                const scoreNum = parseInt(score);
+                const timeNum = parseFloat(time);
+
+                if (isNaN(scoreNum) || isNaN(timeNum)) {
+                    console.error('잘못된 데이터 형식:', { score, time });
+                    throw new Error('잘못된 데이터 형식입니다.');
+                }
+
+                const query = `
+                    INSERT INTO game_records (
+                        player_name,
+                        score,
+                        survival_time,
+                        difficulty_level,
+                        meteor_count,
+                        ip_address
+                    ) VALUES ($1, $2, $3, $4, $5, $6)
+                `;
+
+                const values = ['익명', scoreNum, timeNum, 1, Math.floor(scoreNum/10), ip];
+                console.log('실행할 쿼리:', { query, values });
+
+                const result = await client.query(query, values);
+                console.log('쿼리 실행 결과:', result);
+
+                res.status(200).json({ 
+                    message: "Score saved successfully",
+                    data: {
+                        score: scoreNum,
+                        time: timeNum,
+                        ip: ip
+                    }
+                });
+            } catch (error) {
+                console.error('저장 중 에러:', error);
+                res.status(500).json({ 
+                    error: error.message,
+                    stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+                });
             }
-
-            const scoreNum = parseInt(score);
-            const timeNum = parseFloat(time);
-
-            if (isNaN(scoreNum) || isNaN(timeNum)) {
-                throw new Error(`잘못된 데이터 형식 - score: ${score}, time: ${time}`);
-            }
-
-            const query = `
-                INSERT INTO game_records (
-                    player_name,
-                    score, 
-                    survival_time, 
-                    difficulty_level, 
-                    meteor_count, 
-                    ip_address
-                ) VALUES ($1, $2, $3, $4, $5, $6)
-            `;
-
-            const values = ['익명', scoreNum, timeNum, 1, Math.floor(scoreNum/10), ip];
-            
-            console.log('실행할 쿼리:', query);
-            console.log('쿼리 파라미터:', values);
-
-            const result = await client.query(query, values);
-            console.log('쿼리 실행 결과:', result);
-            
-            res.status(200).json({ 
-                message: "Score saved successfully",
-                result: result
-            });
         } 
         else if (req.method === 'GET') {
             const result = await client.query(`
