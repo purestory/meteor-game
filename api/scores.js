@@ -78,13 +78,29 @@ export default async function handler(req, res) {
             }
         } 
         else if (req.method === 'GET') {
-            const result = await client.query(`
-                SELECT player_name, score, survival_time, difficulty_level, meteor_count, played_at
-                FROM game_records 
-                ORDER BY score DESC 
-                LIMIT 10
-            `);
-            res.status(200).json({ scores: result.rows });
+            try {
+                const result = await client.query(`
+                    SELECT 
+                        player_name, 
+                        score, 
+                        survival_time, 
+                        difficulty_level, 
+                        meteor_count, 
+                        played_at
+                    FROM game_records 
+                    ORDER BY score DESC 
+                    LIMIT 20
+                `);
+                
+                res.status(200).json({ scores: result.rows });
+                
+            } catch (error) {
+                console.error('순위 조회 중 에러:', error);
+                res.status(500).json({ 
+                    error: '순위 데이터 조회 실패',
+                    details: error.message 
+                });
+            }
         }
     } catch (error) {
         console.error('에러 발생:', {
