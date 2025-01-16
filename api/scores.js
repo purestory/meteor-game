@@ -21,6 +21,7 @@ export default async function handler(req, res) {
 
     try {
         console.log('DB 연결 시도...');
+        console.log('DB 연결 시도...');
         await client.connect();
         console.log('DB 연결 성공');
 
@@ -103,7 +104,28 @@ export default async function handler(req, res) {
                 parameters: error.parameters
             }
         });
+        console.error('에러 발생:', {
+            message: error.message,
+            stack: error.stack,
+            query: error.query,
+            parameters: error.parameters
+        });
+        
+        res.status(500).json({ 
+            error: error.message,
+            details: {
+                code: error.code,
+                query: error.query,
+                parameters: error.parameters
+            }
+        });
     } finally {
+        try {
+            await client.end();
+            console.log('DB 연결 종료');
+        } catch (err) {
+            console.error('DB 연결 종료 중 에러:', err);
+        }
         try {
             await client.end();
             console.log('DB 연결 종료');
