@@ -1,5 +1,6 @@
 const { Client } = require('pg');
 
+// DB 상태 확인을 위한 API 엔드포인트
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', '*');

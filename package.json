@@ -1,7 +1,17 @@
 {
   "name": "meteor-game",
   "version": "1.0.0",
+  "description": "운석 피하기 게임",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
     "pg": "^8.11.3"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "",
+  "license": "ISC"
 }
