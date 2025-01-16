@@ -1,6 +1,7 @@
 {
   "version": 2,
   "routes": [
+    { "src": "/api/db-status", "dest": "/api/db-status.js" },
     { "src": "/api/scores", "dest": "/api/scores.js" },
     { "src": "/(.*)", "dest": "/docs/index.html" }
   ],
