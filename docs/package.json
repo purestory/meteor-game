@@ -1,6 +1,6 @@
 {
   "name": "meteor-game",
-  "version": "1.25.0",
+  "version": "1.26.0",
   "description": "운석 피하기 게임",
   "main": "index.html"
 }

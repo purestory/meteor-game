@@ -313,9 +313,15 @@
             checkStartGame();
         };
 
-        explosionImage.src = 'explosion.png';
-        explosionImage.onload = function() {
-            console.log('폭발 이미지 로딩 완료');
+        explosionImage.onload = () => {
+            console.log('폭발 이미지 로드 성공:', {
+                width: explosionImage.width,
+                height: explosionImage.height,
+                src: explosionImage.src
+            });
+            imagesLoaded.explosion = true;
+            startExplosionPreview();
+            checkStartGame();
         };
 
         // 이미지 에러 핸들러
@@ -1030,37 +1036,6 @@
 
         // 페이지 로드시 순위표 초기화
         window.addEventListener('load', updateLeaderboard);
-
-        // 폭발 효과 관련 변수들
-        let explosions = [];
-        const EXPLOSION_FRAME_COUNT = 8;
-        const EXPLOSION_FRAME_WIDTH = 128;
-        const EXPLOSION_FRAME_HEIGHT = 128;
-
-        // 폭발 효과 업데이트 함수
-        function updateExplosions() {
-            for (let i = explosions.length - 1; i >= 0; i--) {
-                explosions[i].frame++;
-                if (explosions[i].frame >= EXPLOSION_FRAME_COUNT) {
-                    explosions.splice(i, 1);
-                }
-            }
-        }
-
-        // 폭발 효과 그리기 함수
-        function drawExplosions() {
-            explosions.forEach(explosion => {
-                const frameX = (explosion.frame % EXPLOSION_FRAME_COUNT) * EXPLOSION_FRAME_WIDTH;
-                ctx.drawImage(
-                    explosionImage,
-                    frameX, 0,
-                    EXPLOSION_FRAME_WIDTH, EXPLOSION_FRAME_HEIGHT,
-                    explosion.x - EXPLOSION_FRAME_WIDTH/2, 
-                    explosion.y - EXPLOSION_FRAME_HEIGHT/2,
-                    EXPLOSION_FRAME_WIDTH, EXPLOSION_FRAME_HEIGHT
-                );
-            });
-        }
     </script>
 </body>
 </html> 
